@@ -1,2 +1,5 @@
-# Supply Chain Analytics Using Deterministic Optimization
+# Supply Chain Optimization Using Linear Programming
 ![Masthead Image](/images/image.png)
+This project demonstrates how Linear Programming (LP) can be applied to effectively solve complex supply chain problems. Specifically, it focuses on optimizing the assignment of shipping routes to customer orders while minimizing overall transportation and warehousing costs. The solution leverages LP to ensure decisions respect multiple real-world constraints, such as warehouse capacities, product compatibility, customer-warehouse relationships, and port shipping restrictions.
+
+By modeling the supply chain problem as a mathematical optimization task, we can determine cost-effective and feasible solutions that align with business goals, ensuring efficient resource utilization and timely deliveries. This approach highlights the power of LP in handling large-scale decision-making problems in logistics and supply chain management.
