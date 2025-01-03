@@ -152,6 +152,11 @@ The problem involves assigning customer orders to warehouses and shipping routes
 - Warehouses can only ship through specific ports.
 - Product compatibility and special customer restrictions must be respected
 
+A new Minimization LP is initiated using the `Pulp` library in Python
+```python
+model = pulp.LpProblem("SupplyChainOptimization", pulp.LpMinimize)
+```
+
 ### Decision Variables
 The following decision variables are defined in the linear programming (LP) formulation:
 ![Decision Variables](/images/LP1.png)
@@ -194,8 +199,60 @@ The objective is to  minimize the total cost, which is the sum of:
 
 - Transportation costs: Costs associated with shipping products via assigned routes.
 
-**Transportaion Cost**
+**Warehouse Cost**
 ![Warehouse Cost](/images/WHCost.png)
+
+This is formulated in the Pulp LP as follows:
+```python
+warehouse_cost = pulp.lpSum(
+    x_ki[k, i] * data['OrderList'].loc[k, 'Unit quantity'] * data['WhCosts'].set_index('WH').loc[i, 'Cost/unit']
+    for k in data['OrderList'].index[:500]
+    for i in data['WhCosts']['WH']
+)
+```
+
+**Transportation Cost**
+![Warehouse Cost](/images/TPCost.png)
+For each shipping lane *cpjstm*, there is a minimum cost of shipping. If the respectve rate x weight is lower than the minimum cost, then the minimum cost is considered and vice versa.
+This is formulated in the Pulp LP as follows:
+```python
+transportation_cost = pulp.lpSum(
+    y_kcpjstm[k, c, p, j, s, t, m]
+    * max(
+        # Minimum cost
+        data['FreightRates']
+        .set_index(['Carrier', 'orig_port_cd', 'dest_port_cd', 'svc_cd', 'tpt_day_cnt', 'mode_dsc'])
+        .loc[(c, p, j, s, t, m)]['minimum cost'].iloc[0],
+
+        # Rate multiplied by weight
+        (
+            data['FreightRates']
+            .set_index(['Carrier', 'orig_port_cd', 'dest_port_cd', 'svc_cd', 'tpt_day_cnt', 'mode_dsc'])
+            .loc[(c, p, j, s, t, m)]
+            .query("minm_wgh_qty <= @data['OrderList'].loc[@k]['Weight'] <= max_wgh_qty")['rate'].iloc[0]
+            * data['OrderList'].loc[k]['Weight']
+        )
+        if not data['FreightRates']
+        .set_index(['Carrier', 'orig_port_cd', 'dest_port_cd', 'svc_cd', 'tpt_day_cnt', 'mode_dsc'])
+        .loc[(c, p, j, s, t, m)]
+        .query("minm_wgh_qty <= @data['OrderList'].loc[@k]['Weight'] <= max_wgh_qty").empty
+        else data['FreightRates']
+        .set_index(['Carrier', 'orig_port_cd', 'dest_port_cd', 'svc_cd', 'tpt_day_cnt', 'mode_dsc'])
+        .loc[(c, p, j, s, t, m)]['rate'].mean()
+    )
+    for k in data['OrderList'].index[:500]
+    for c, group in data['FreightRates'].groupby('Carrier')
+    for p, j, s, t, m in group[['orig_port_cd', 'dest_port_cd', 'svc_cd', 'tpt_day_cnt', 'mode_dsc']]
+    .drop_duplicates().itertuples(index=False)
+)
+```
+
+The combined Objective Funtion then looks like the following
+![Warehouse Cost](/images/ObjectiveFunction.png)
+These costs are added to the minimization LP as follows:
+```python
+model += warehouse_cost + transportation_cost
+```
 
 
 
