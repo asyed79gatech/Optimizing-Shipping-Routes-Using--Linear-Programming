@@ -187,6 +187,17 @@ y_kcpjstm = pulp.LpVariable.dicts(
 
 ```
 
+### Objective Function
+The objective is to  minimize the total cost, which is the sum of:
+
+- Warehousing costs: Costs associated with storing products at assigned warehouses.
+
+- Transportation costs: Costs associated with shipping products via assigned routes.
+
+**Transportaion Cost**
+![Warehouse Cost](/images/WHCost.png)
+
+
 
 
 
