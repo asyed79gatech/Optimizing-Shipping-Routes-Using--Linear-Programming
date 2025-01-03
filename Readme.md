@@ -157,7 +157,35 @@ The following decision variables are defined in the linear programming (LP) form
 ![Decision Variables](/images/LP1.png)
 
 
-   
+These variables are defined in the Linear Program formulation using the `PulP` library as follows:
+
+```python
+# Generate the x_ki variable
+x_ki = pulp.LpVariable.dicts(
+    "x_ki",
+    (
+    (k, i)
+    for k in data['OrderList'].index # For every order number in the OrderList table
+    for i in data['PlantPorts']['Plant Code'].unique() # For every unique Warehouse/Plant in the PlantPorts table
+    ),
+    cat = "Binary"
+)
+```
+
+```python
+# Generate the y_kcpjstm variable
+y_kcpjstm = pulp.LpVariable.dicts(
+    "y_kcpjstm",
+    (
+        (k, c, p, j, s, t, m)  # Exclude 'k' from FreightRates indexing
+        for k in data['OrderList'].index  # Orders
+        for c, group in data['FreightRates'].groupby('Carrier')  # Iterate over each Carrier
+        for p, j, s, t, m in group[['orig_port_cd', 'dest_port_cd', 'svc_cd', 'tpt_day_cnt', 'mode_dsc']].drop_duplicates().itertuples(index=False)
+    ),
+    cat="Binary",
+)
+
+```
 
 
 
