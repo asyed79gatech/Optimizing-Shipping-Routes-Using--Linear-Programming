@@ -19,7 +19,7 @@ By modeling the supply chain problem as a mathematical optimization task, we can
 ## Dataset Overview
 This dataset represents the outbound logistics network of a global microchip producer. It includes demand data for 9,216 orders routed through a network of 15 warehouses, 11 origin ports, and 1 destination port. Key details include:
 
-- Warehouses: Limited by type of products they can stock, customers they can support, and daily order capacity.
+- Warehouses/Plants: Limited by type of products they can stock, customers they can support, and daily order capacity. Throughout the dataset and the problem, the terms Warehouse and Plants are used interchangably and essentially refer to the same thing.
 - Service Levels: Options include Door-to-Door (DTD), Door-to-Port (DTP), and Customer Referred Freight (CRF).
 - Transportation: Orders shipped via 9 couriers using air or ground transport, with rates based on weight bands and service levels.
 This dataset provides real-world constraints and routing complexities for the supply chain optimization.
@@ -28,6 +28,119 @@ Fig. 1 shows a simplified example case for the supply chain model
 ![Supply Chain Image](/images/supply_chain.png)
 *Figure 1: Graphical representation of the outbound supply chain. Each warehouse i is connected to one or many origin ports p. The shipping lane between origin port p
 and destination port j is a combination of courier c, service level s, delivery time t and transportation mode m*
+
+## Dataset Description
+The dataset consists of 7 interconnected tables, each contributing to defining the constraints and parameters for the optimization model:
+**1- OrderList**: Contains all customer orders that need to be assigned to a route.
+
+
+| Order ID    | Order Date | Origin Port | Carrier | TPT | Service Level | Ship Ahead Day Count | Ship Late Day Count | Customer  | Product ID | Plant Code | Destination Port | Unit Quantity | Weight |
+|-------------|------------|-------------|---------|-----|---------------|-----------------------|---------------------|-----------|------------|------------|------------------|---------------|--------|
+| 1447296447  | 5/26/13    | PORT09      | V44_3   | 1   | CRF           | 3                     | 0                   | V55555_53 | 1700106    | PLANT16    | PORT09           | 808           | 14.3   |
+| 1447158015  | 5/26/13    | PORT09      | V44_3   | 1   | CRF           | 3                     | 0                   | V55555_53 | 1700106    | PLANT16    | PORT09           | 3188          | 87.94  |
+| 1447138899  | 5/26/13    | PORT09      | V44_3   | 1   | CRF           | 3                     | 0                   | V55555_53 | 1700106    | PLANT16    | PORT09           | 2331          | 61.2   |
+
+The OrderList contains historical records of how the orders were routed and demand satisfied. Thus, we can calculate the costs of historical network and also optimize for the new constraints.
+
+**2- FreightRates**: The FreightRates table describes all available carriers and the weight gaps for each individual lane and rates associated. There are a total of 9 unique carriers and from each of the carriers stem separate shipping lanes depending on the unique combinations of `[Origin Port, Destination Port, Service, Time, Mode of Transport]` for that carrier corresponding to columns `['orig_port_cd', 'dest_port_cd', 'svc_cd', 'tpt_day_cnt', 'mode_dsc']`.
+
+| Carrier  | Orig Port CD | Dest Port CD | Min Weight Qty | Max Weight Qty | Service Code | Minimum Cost | Rate  | Mode Description | Transport Day Count | Carrier Type  |
+|----------|--------------|--------------|----------------|----------------|---------------|--------------|-------|------------------|---------------------|---------------|
+| V444_6   | PORT08       | PORT09       | 250            | 499.99         | DTD           | $43.23       | $0.71 | AIR              | 2                   | V88888888_0   |
+| V444_6   | PORT08       | PORT09       | 65             | 69.99          | DTD           | $43.23       | $0.75 | AIR              | 2                   | V88888888_0   |
+| V444_6   | PORT08       | PORT09       | 60             | 64.99          | DTD           | $43.23       | $0.79 | AIR              | 2                   | V88888888_0   |
+
+
+**3- WhCosts**: This table specifies the cost associated in storing the products in given warehouse measured in dollars per unit. there a total of 19 unique Warehouses and the associated cost of stroing product/unit in each of these Warehouses is shown below;
+
+
+| WH       | Cost/Unit |
+|----------|-----------|
+| PLANT15  | 1.42      |
+| PLANT17  | 0.43      |
+| PLANT18  | 2.04      |
+| PLANT05  | 0.49      |
+| PLANT02  | 0.48      |
+| PLANT01  | 0.57      |
+| PLANT06  | 0.55      |
+| PLANT10  | 0.49      |
+| PLANT07  | 0.37      |
+| PLANT14  | 0.63      |
+| PLANT16  | 1.92      |
+| PLANT12  | 0.77      |
+| PLANT11  | 0.56      |
+| PLANT09  | 0.47      |
+| PLANT03  | 0.52      |
+| PLANT13  | 0.47      |
+| PLANT19  | 0.64      |
+| PLANT08  | 0.52      |
+| PLANT04  | 0.43      |
+
+
+**4- WHCapacities**: Defines the maximum number of orders each Warehouse can process daily.
+
+
+| Plant ID  | Daily Capacity |
+|-----------|----------------|
+| PLANT15   | 11             |
+| PLANT17   | 8              |
+| PLANT18   | 111            |
+| PLANT05   | 385            |
+| PLANT02   | 138            |
+| PLANT01   | 1070           |
+| PLANT06   | 49             |
+| PLANT10   | 118            |
+| PLANT07   | 265            |
+| PLANT14   | 549            |
+| PLANT16   | 457            |
+| PLANT12   | 209            |
+| PLANT11   | 332            |
+| PLANT09   | 11             |
+| PLANT03   | 1013           |
+| PLANT13   | 490            |
+| PLANT19   | 7              |
+| PLANT08   | 14             |
+| PLANT04   | 554            |
+
+
+**5- ProductsPerPlant**: this table lists all supported warehouse-product combinations. There are some `Produt IDs` that can only be supported by specific Warehouses/Plants.
+
+| Plant Code | Product ID |
+|------------|------------|
+| PLANT15    | 1698815    |
+| PLANT17    | 1664419    |
+
+The table hence shows that `Product ID` `1698815` can be supported by PLANT15.
+
+**6- VmiCustomers**: This table lists all special cases, where warehouse is only allowed to support specific customers, while any other non-listed warehouse can supply any customer
+| Plant Code | Customers             |
+|------------|-----------------------|
+| PLANT02    | V5555555555555_16     |
+| PLANT02    | V555555555555555_29   |
+| PLANT02    | V555555555_3          |
+| PLANT02    | V55555555555555_8     |
+| PLANT02    | V55555555_9           |
+| PLANT02    | V55555_10             |
+| PLANT02    | V55555555_5           |
+| PLANT06    | V555555555555555_18   |
+| PLANT06    | V55555_10             |
+| PLANT10    | V555555555555555_29   |
+| PLANT10    | V555555_34            |
+| PLANT10    | V5555555555555555555_54 |
+| PLANT10    | V55555_10             |
+| PLANT11    | V5555555555555555555_54 |
+
+Hence, the above Customers can only be serviced by the respective Plants shown in the table. Other customers can be serviced through any of the 19 Plants.
+
+**7- PlantPorts**: This table describes the allowed links between the warehouses and shipping ports in real world.
+| Plant Code | Port   |
+|------------|--------|
+| PLANT01    | PORT01 |
+| PLANT01    | PORT02 |
+| PLANT02    | PORT03 |
+| PLANT03    | PORT04 |
+
+Hence, as can be seen above, `PLANT01` can service orders from `PORT01` and `PORT02` only
 
 
 
