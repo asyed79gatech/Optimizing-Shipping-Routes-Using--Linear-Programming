@@ -254,6 +254,38 @@ These costs are added to the minimization LP as follows:
 model += warehouse_cost + transportation_cost
 ```
 
+### Constraints
+**1- Each order is assigned to exaclty 1 Warehouse**
+![Warehouse Cost](/images/Constraint1.png)
+This is formulated in python as:
+```python
+for k in data['OrderList'].index[:500]:
+    model += pulp.lpSum(x_ki[k, i] for i in data['WhCosts']['WH']) == 1
+```
+
+**2- Each order is assigned to one shipping lane**
+![Warehouse Cost](/images/Constraint2.png)
+This is formulated in python as:
+```python
+for k in data['OrderList'].index[:500]:
+    model += pulp.lpSum(
+        y_kcpjstm[k, c, p, j, s, t, m]
+        for c, group in data['FreightRates'].groupby('Carrier')  # Iterate over each Carrier
+        for p, j, s, t, m in group[['orig_port_cd', 'dest_port_cd', 'svc_cd', 'tpt_day_cnt', 'mode_dsc']]
+        .drop_duplicates().itertuples(index=False)
+    ) == 1
+```
+
+**3- Warehouse capacity constraints**
+![Warehouse Cost](/images/Constraint3.png)
+This is formulated in python as:
+```python
+for i in data['WhCapacities']['Plant ID']:
+    model += pulp.lpSum(x_ki[k, i] for k in data['OrderList'].index[:500]) <= data['WhCapacities'].set_index('Plant ID').loc[i, 'Daily Capacity ']
+```
+
+
+
 
 
 
