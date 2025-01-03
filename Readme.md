@@ -259,7 +259,7 @@ model += warehouse_cost + transportation_cost
 ![Warehouse Cost](/images/Constraint1.png)
 This is formulated in python as:
 ```python
-for k in data['OrderList'].index[:500]:
+for k in data['OrderList'].index:
     model += pulp.lpSum(x_ki[k, i] for i in data['WhCosts']['WH']) == 1
 ```
 
@@ -267,7 +267,7 @@ for k in data['OrderList'].index[:500]:
 ![Warehouse Cost](/images/Constraint2.png)
 This is formulated in python as:
 ```python
-for k in data['OrderList'].index[:500]:
+for k in data['OrderList'].index:
     model += pulp.lpSum(
         y_kcpjstm[k, c, p, j, s, t, m]
         for c, group in data['FreightRates'].groupby('Carrier')  # Iterate over each Carrier
@@ -281,8 +281,61 @@ for k in data['OrderList'].index[:500]:
 This is formulated in python as:
 ```python
 for i in data['WhCapacities']['Plant ID']:
-    model += pulp.lpSum(x_ki[k, i] for k in data['OrderList'].index[:500]) <= data['WhCapacities'].set_index('Plant ID').loc[i, 'Daily Capacity ']
+    model += pulp.lpSum(x_ki[k, i] for k in data['OrderList'].index) <= data['WhCapacities'].set_index('Plant ID').loc[i, 'Daily Capacity ']
 ```
+
+**4- Shipping lane weight constraints**
+![Warehouse Cost](/images/Constraint4.png)
+This is formulated in python as:
+```python
+for c, group in data['FreightRates'].groupby('Carrier'):
+    for (p, j, s, t, m) in group[['orig_port_cd', 'dest_port_cd', 'svc_cd', 'tpt_day_cnt', 'mode_dsc']].drop_duplicates().itertuples(index=False):
+        model += pulp.lpSum(
+            y_kcpjstm[k, c, p, j, s, t, m] * data['OrderList'].loc[k, 'Weight'] for k in data['OrderList'].index
+            ) <= data['FreightRates'].set_index(['Carrier', 'orig_port_cd', 'dest_port_cd', 'svc_cd', 'tpt_day_cnt', 'mode_dsc']).loc[(c, p, j, s, t, m), 'max_wgh_qty'].max()
+```
+
+**4- Product Compatibility with Warehouses**
+![Warehouse Cost](/images/Constraint5.png)
+This is formulated in python as:
+```python
+for k in data['OrderList'].index:
+    for i in data['WhCosts']['WH']:
+        products = data['ProductsPerPlant'].set_index('Plant Code').loc[i, 'Product ID']
+        products = [products] if not isinstance(products, pd.Series) else products.to_list()
+        if data['OrderList'].loc[k, 'Product ID'] not in products:
+            model += x_ki[k, i] == 0
+```
+
+
+**5- Customer-warehouse restrictions**
+![Warehouse Cost](/images/Constraint6.png)
+This is formulated in python as:
+```python
+for k in data['OrderList'].index:
+    for i in data['WhCosts']['WH']:
+        # Check if the warehouse-customer combination is in VmiCustomers
+        if i in data['VmiCustomers']['Plant Code'].unique():
+            allowed_customers = data['VmiCustomers'].set_index('Plant Code').loc[i, 'Customers']
+            if data['OrderList'].loc[k, 'Customer'] not in allowed_customers:
+                model += x_ki[k, i] == 0
+```
+
+**7-Restrict warehouses to ship orders only through allowed ports**
+![Warehouse Cost](/images/Constraint7.png)
+This is formulated in python as:
+```python
+for k in data['OrderList'].index[:500]:
+    for i in data['WhCosts']['WH']:
+        # Get the allowed ports for the current warehouse
+            allowed_ports = data['PlantPorts'].set_index('Plant Code').loc[i, 'Port']
+            for c, group in data['FreightRates'].groupby('Carrier'):
+                for (p, j, s, t, m) in group[['orig_port_cd', 'dest_port_cd', 'svc_cd', 'tpt_day_cnt', 'mode_dsc']].drop_duplicates().itertuples(index=False):
+                    if p not in allowed_ports:
+                        # Enforce the constraint
+                        model += y_kcpjstm[k, c, p, j, s, t, m] <= 1 - x_ki[k, i]
+```
+
 
 
 
