@@ -23,8 +23,8 @@ This dataset represents the outbound logistics network of a global microchip pro
 - Service Levels: Options include Door-to-Door (DTD), Door-to-Port (DTP), and Customer Referred Freight (CRF).
 - Transportation: Orders shipped via 9 couriers using air or ground transport, with rates based on weight bands and service levels.
 This dataset provides real-world constraints and routing complexities for the supply chain optimization.
-
 Fig. 1 shows a simplified example case for the supply chain model
+
 ![Supply Chain Image](/images/supply_chain.png)
 *Figure 1: Graphical representation of the outbound supply chain. Each warehouse i is connected to one or many origin ports p. The shipping lane between origin port p
 and destination port j is a combination of courier c, service level s, delivery time t and transportation mode m*
