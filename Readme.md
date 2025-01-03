@@ -143,6 +143,41 @@ Hence, the above Customers can only be serviced by the respective Plants shown i
 Hence, as can be seen above, `PLANT01` can service orders from `PORT01` and `PORT02` only
 
 
+## Formulating the Linear Program
+The problem involves assigning customer orders to warehouses and shipping routes while minimizing total costs and satisfying the following constraints constraints:
+
+- Orders must be assigned to a single warehouse.
+- Warehouses can only process a limited number of orders per day.
+- Shipping lanes have weight limits and cost structures.
+- Warehouses can only ship through specific ports.
+- Product compatibility and special customer restrictions must be respected
+
+### Decision Variables
+# Decision Variables
+
+The following decision variables are defined in the linear programming (LP) formulation:
+
+1. **$x_{ki}$**: A binary variable indicating whether order $k$ from the `9215` orders in the `OrderList` table is assigned to warehouse $i$ out of the `19` Warehouses in the `WHCosts` table. The formulation is:
+
+   $$
+   x_{ki} = 
+   \begin{cases} 
+   1 & \text{if order } k \text{ is assigned to warehouse } i, \\
+   0 & \text{otherwise.}
+   \end{cases}
+   $$
+
+2. **$y_{kcpjstm}$**: A binary variable indicating whether order $k$ is shipped via a specific shipping lane ($c$-$p$-$j$-$s$-$t$-$m$) where ($c$-$p$-$j$-$s$-$t$-$m$) is a unique `['orig_port_cd', 'dest_port_cd', 'svc_cd', 'tpt_day_cnt', 'mode_dsc']` combination in the `FreightRates` table The formulation is:
+
+   $$
+   y_{kcpjstm} = 
+   \begin{cases} 
+   1 & \text{if order } k \text{ is shipped via the shipping lane } (c, p, j, s, t, m), \\
+   0 & \text{otherwise.}
+   \end{cases}
+   $$
+
+   
 
 
 
